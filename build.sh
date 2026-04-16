@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 CACHE_DIR="cache"
-SERVERA="https://github.com/AuxXxilium/syno-tarball/raw/main/tarballs"
+SERVERA="https://arc.auxxxilium.tech/tarballs"
 SERVERS="https://global.synologydownload.com"
 #https://global.download.synology.com/download/ToolChain/Synology%20NAS%20GPL%20Source/
 
@@ -120,7 +120,7 @@ function prepare() {
       # Dev
       echo -n "Checking ${CACHE_VERSION}/ds.${PLATFORM}-${TOOLKIT_VER}.dev.txz... "
       if [ ! -f "${CACHE_VERSION}/ds.${PLATFORM}-${TOOLKIT_VER}.dev.txz" ]; then
-        URL="${SERVERA}/${TOOLKIT_VER}/ds.${PLATFORM}-${TOOLKIT_VER}.dev.txz"
+        URL="${SERVERA}/ds.${PLATFORM}-${TOOLKIT_VER}.dev.txz"
         echo -e "No\nDownloading ${URL}"
         STATUS=`curl -w "%{http_code}" -L "${URL}" -o "${CACHE_VERSION}/ds.${PLATFORM}-${TOOLKIT_VER}.dev.txz"`
         if [ ${STATUS} -ne 200 ]; then

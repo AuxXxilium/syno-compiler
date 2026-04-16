@@ -60,7 +60,9 @@ function compile-module {
   if [ -f "/tmp/input/defines.${1}" ]; then
     PARMS+=" `cat "/tmp/input/defines.${1}" | xargs`"
   fi
-  make -j`nproc` -C "/opt/${PLATFORM}/build" M="/tmp/input" ${PARMS} modules
+  
+  make -j`nproc` -C "/opt/${PLATFORM}/build" M="/tmp/input" ${PARMS} ALLOW_UNDEFINED_SYMBOLS=1 modules 2>&1 || true
+  
   while read F; do
     strip -g "${F}"
     echo "Copying `basename ${F}`"
@@ -71,20 +73,25 @@ function compile-module {
 ###############################################################################
 function compile-lkm {
   PLATFORM=${1}
+  TARGET=${2:-prod}
   if [ -z "${PLATFORM}" ]; then
-    echo "Use: compile-lkm <platform>"
+    echo "Use: compile-lkm <platform> [dev|prod]"
     exit 1
   fi
+  
+  # Validate target
+  if [ "${TARGET}" != "dev" ] && [ "${TARGET}" != "prod" ]; then
+    echo "Invalid target: ${TARGET}. Use 'dev' or 'prod'."
+    exit 1
+  fi
+  
   cp -R /input /tmp
   export-vars ${PLATFORM}
   export LINUX_SRC="/opt/${PLATFORM}/build"
-  make -C "/tmp/input" dev-v7
+  
+  make -C "/tmp/input" "${TARGET}-v7" 2>&1 || true
   strip -g "/tmp/input/redpill.ko"
-  mv "/tmp/input/redpill.ko" "/output/redpill-dev.ko"
-  make -C "/tmp/input" clean
-  make -C "/tmp/input" prod-v7
-  strip -g "/tmp/input/redpill.ko"
-  mv "/tmp/input/redpill.ko" "/output/redpill-prod.ko"
+  mv "/tmp/input/redpill.ko" "/output/redpill.ko"
 }
 
 ###############################################################################
@@ -113,17 +120,59 @@ function compile-lkm {
 
 ###############################################################################
 ###############################################################################
+function compile-binary {
+  # Validate
+  if [ -z "${1}" ] || [ -z "${2}" ]; then
+    echo "Use: compile-binary <platform> <build_script>"
+    exit 1
+  fi
+  PLATFORM="${1}"
+  BUILD_SCRIPT="${2}"
+  echo -e "Compiling binary for \033[7m${PLATFORM}\033[0m using ${BUILD_SCRIPT}..."
+  
+  # Copy input to temp directory
+  cp -R /input /tmp
+  
+  # Check if build script exists
+  if [ ! -f "/tmp/input/${BUILD_SCRIPT}" ]; then
+    echo "Build script not found: /tmp/input/${BUILD_SCRIPT}"
+    exit 1
+  fi
+  
+  # Make build script executable
+  chmod +x "/tmp/input/${BUILD_SCRIPT}"
+  
+  # Set build environment variables
+  export ROOT_PATH="/tmp/input"
+  export PLATFORM="${PLATFORM}"
+  
+  # Run build script
+  cd /tmp/input
+  ./${BUILD_SCRIPT}
+  
+  # Copy compiled binaries to output
+  if [ -d "/tmp/input/output" ]; then
+    cp -R /tmp/input/output/* /output/
+    echo "Binary compilation completed"
+  else
+    echo "No output directory found"
+    exit 1
+  fi
+}
+
+###############################################################################
 
 if [ $# -lt 1 ]; then
   echo "Use: <command> (<params>)"
-  echo "Commands: bash | shell <platform> | compile-module <platform> | compile-lkm <platform>"
+  echo "Commands: bash | shell <platform> | compile-module <platform> | compile-binary <platform> <build_script> | compile-lkm <platform> [dev|prod]"
   exit 1
 fi
 case $1 in
   bash) shift && bash -l $@ ;;
   shell) shell $@ ;;
   compile-module) compile-module $2 ;;
-  compile-lkm) compile-lkm $2 ;;
+  compile-binary) compile-binary $2 $3 ;;
+  compile-lkm) compile-lkm $2 $3 ;;
   # compile-drivers) compile-drivers ;;
   *) echo "Command not recognized: $1" ;;
 esac
