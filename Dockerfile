@@ -1,10 +1,10 @@
-FROM alpine:3.14 AS stage
-ARG PLATFORMS="broadwell:4.4.180 broadwellnkv2:4.4.180 geminilake:4.4.180 v1000:4.4.180 purley:4.4.180 epyc7002:5.10.55 broadwellntbap:4.4.180 r1000:4.4.180 denverton:4.4.180 broadwellnk:4.4.180 apollolake:4.4.180"
-ARG TOOLKIT_VER="7.1"
-ARG GCCLIB_VER="gcc850_glibc226"
+FROM alpine:3.19 AS stage
+ARG PLATFORMS="r1000nk:5.10.55 v1000nk:5.10.55 epyc7002:5.10.55 broadwellnkv2:4.4.302 broadwellntbap:4.4.302 geminilake:4.4.302 r1000:4.4.302 v1000:4.4.302 apollolake:4.4.302 denverton:4.4.302 purley:4.4.302 broadwell:4.4.302 geminilakenk:5.10.55 broadwellnk:4.4.302"
+ARG TOOLKIT_VER="7.3"
+ARG GCCLIB_VER="gcc1220_glibc236"
 
 # Copy downloaded toolkits
-ADD cache-7.1 /cache
+ADD cache-7.3 /cache
 # Extract toolkits
 RUN for V in ${PLATFORMS}; do \
       echo "${V}" | while IFS=':' read PLATFORM KVER; do \
@@ -26,14 +26,15 @@ RUN for V in ${PLATFORMS}; do \
     done
 
 # Final image
-FROM debian:11-slim
+FROM debian:12-slim
 ENV SHELL=/bin/bash \
     ARCH=x86_64
 
 RUN apt update --yes && \
     apt install --yes --no-install-recommends --no-install-suggests --allow-unauthenticated \
       ca-certificates nano curl bc kmod git gettext texinfo autopoint gawk sudo \
-      build-essential make ncurses-dev libssl-dev autogen automake pkg-config libtool xsltproc gperf && \
+      build-essential make ncurses-dev libssl-dev autogen automake pkg-config libtool xsltproc gperf \
+      flex bison libelf-dev libfile-fcntllock-perl && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* && \
     useradd --create-home --shell /bin/bash --uid 1000 --user-group arc && \

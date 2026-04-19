@@ -61,13 +61,15 @@ function compile-module {
     PARMS+=" `cat "/tmp/input/defines.${1}" | xargs`"
   fi
   
-  make -j`nproc` -C "/opt/${PLATFORM}/build" M="/tmp/input" ${PARMS} ALLOW_UNDEFINED_SYMBOLS=1 modules 2>&1 || true
+  # Build modules with KBUILD_MODPOST_WARN=1 to treat modpost errors as warnings
+  make -j`nproc` -C "/opt/${PLATFORM}/build" M="/tmp/input" ${PARMS} KBUILD_MODPOST_WARN=1 modules 2>&1 || true
   
+  # Collect all .ko files that were successfully compiled
   while read F; do
     strip -g "${F}"
     echo "Copying `basename ${F}`"
     cp "${F}" "/output"
-  done < <(find /tmp/input -name \*.ko)
+  done < <(find /tmp/input -name \*.ko 2>/dev/null)
 }
 
 ###############################################################################
