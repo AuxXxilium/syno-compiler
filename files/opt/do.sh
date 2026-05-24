@@ -3,14 +3,48 @@
 set -eo pipefail
 
 ###############################################################################
+function resolve-kernel-build-dir() {
+  local platform="$1"
+  local build_dir=""
+
+  if [ -z "${platform}" ]; then
+    echo ""
+    return 1
+  fi
+
+  if [ -d "/opt/${platform}/build" ]; then
+    echo "/opt/${platform}/build"
+    return 0
+  fi
+
+  # Fallback: some toolkits are extracted under an extra DSM-* level.
+  build_dir=$(find "/opt/${platform}" -maxdepth 4 -type d -name build 2>/dev/null | head -n 1)
+  if [ -n "${build_dir}" ] && [ -d "${build_dir}" ]; then
+    echo "${build_dir}"
+    return 0
+  fi
+
+  echo ""
+  return 1
+}
+
+###############################################################################
 function export-vars() {
   # Validate
   if [ -z "${1}" ]; then
     echo "Use: export-vars <platform>"
     exit 1
   fi
+  local build_dir
+  build_dir=$(resolve-kernel-build-dir "${1}")
+  if [ -z "${build_dir}" ]; then
+    echo "Kernel build directory not found for platform: ${1}"
+    find "/opt/${1}" -maxdepth 5 -type d 2>/dev/null | sed 's#^#  #'
+    exit 1
+  fi
+
   export PLATFORM="${1}"
-  export KSRC="/opt/${1}/build"
+  export KSRC="${build_dir}"
   export CROSS_COMPILE="/opt/${1}/bin/x86_64-pc-linux-gnu-"
   export CFLAGS="-I/opt/${1}/include"
   export LDFLAGS="-I/opt/${1}/lib"
@@ -25,9 +59,16 @@ function export-vars() {
 
 ###############################################################################
 function shell() {
-  cp -fv /opt/${2}/build/.config /opt/${2}/source/
-  cp -fv /opt/${2}/build/System.map /opt/${2}/source/
-  cp -fv /opt/${2}/build/Module.symvers /opt/${2}/source/
+  local build_dir
+  build_dir=$(resolve-kernel-build-dir "${2}")
+  if [ -z "${build_dir}" ]; then
+    echo "Kernel build directory not found for platform: ${2}"
+    exit 1
+  fi
+
+  cp -fv "${build_dir}/.config" /opt/${2}/source/
+  cp -fv "${build_dir}/System.map" /opt/${2}/source/
+  cp -fv "${build_dir}/Module.symvers" /opt/${2}/source/
   export-vars $2
   shift 2
   bash -l $@
@@ -62,7 +103,7 @@ function compile-module {
   fi
   
   # Build modules with KBUILD_MODPOST_WARN=1 to treat modpost errors as warnings
-  make -j`nproc` -C "/opt/${PLATFORM}/build" M="/tmp/input" ${PARMS} KBUILD_MODPOST_WARN=1 modules 2>&1 || true
+  make -j`nproc` -C "${KSRC}" M="/tmp/input" ${PARMS} KBUILD_MODPOST_WARN=1 modules 2>&1 || true
   
   # Collect all .ko files that were successfully compiled
   while read F; do
@@ -89,9 +130,13 @@ function compile-lkm {
   
   cp -R /input /tmp
   export-vars ${PLATFORM}
-  export LINUX_SRC="/opt/${PLATFORM}/build"
+  export LINUX_SRC="${KSRC}"
   
-  make -C "/tmp/input" "${TARGET}-v7" 2>&1 || true
+  make -C "/tmp/input" "${TARGET}-v7"
+  if [ ! -f "/tmp/input/redpill.ko" ]; then
+    echo "Compilation finished without redpill.ko for ${PLATFORM}-${TARGET}"
+    exit 1
+  fi
   strip -g "/tmp/input/redpill.ko"
   mv "/tmp/input/redpill.ko" "/output/redpill.ko"
 }
