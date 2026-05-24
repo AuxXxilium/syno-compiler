@@ -13,6 +13,9 @@ RUN for V in ${PLATFORMS}; do \
         mkdir "/opt/${PLATFORM}" && \
         tar -xaf "/cache/ds.${PLATFORM}-${TOOLKIT_VER}.dev.txz" -C "/opt/${PLATFORM}" --strip-components=9 \
           "usr/local/x86_64-pc-linux-gnu/x86_64-pc-linux-gnu/sys-root/usr/lib/modules/DSM-${TOOLKIT_VER}" && \
+        if [ -d "/opt/${PLATFORM}/DSM-${TOOLKIT_VER}/build" ] && [ ! -e "/opt/${PLATFORM}/build" ]; then \
+          ln -s "/opt/${PLATFORM}/DSM-${TOOLKIT_VER}/build" "/opt/${PLATFORM}/build"; \
+        fi && \
         echo "Extracting ${PLATFORM}-${GCCLIB_VER}_x86_64-GPL.txz" && \
         tar -xaf "/cache/${PLATFORM}-${GCCLIB_VER}_x86_64-GPL.txz" -C "/opt/${PLATFORM}" --strip-components=1; \
         KVER_MAJOR="`echo ${KVER} | rev | cut -d. -f2- | rev`"; \
@@ -27,6 +30,7 @@ RUN for V in ${PLATFORMS}; do \
 
 # Final image
 FROM debian:12-slim
+ARG TOOLKIT_VER="@@@TOOLKIT_VER@@@"
 ENV SHELL=/bin/bash \
     ARCH=x86_64
 
@@ -43,6 +47,19 @@ RUN apt update --yes && \
 
 COPY --from=stage --chown=1000:1000 /opt /opt
 COPY files/ /
+
+# Compatibility layout for scripts expecting the classic Synology toolkit paths.
+RUN FIRST_PLATFORM="$(awk 'NR==1{print $1}' /opt/platforms 2>/dev/null)" && \
+    if [ -n "${FIRST_PLATFORM}" ]; then \
+      mkdir -p "/usr/local/x86_64-pc-linux-gnu/x86_64-pc-linux-gnu/sys-root/usr/lib/modules/DSM-${TOOLKIT_VER}" && \
+      if [ -d "/opt/${FIRST_PLATFORM}/build" ] && [ ! -e "/usr/local/x86_64-pc-linux-gnu/x86_64-pc-linux-gnu/sys-root/usr/lib/modules/DSM-${TOOLKIT_VER}/build" ]; then \
+        ln -s "/opt/${FIRST_PLATFORM}/build" "/usr/local/x86_64-pc-linux-gnu/x86_64-pc-linux-gnu/sys-root/usr/lib/modules/DSM-${TOOLKIT_VER}/build"; \
+      fi && \
+      mkdir -p "/usr/local/x86_64-pc-linux-gnu" && \
+      if [ -d "/opt/${FIRST_PLATFORM}/bin" ] && [ ! -e "/usr/local/x86_64-pc-linux-gnu/bin" ]; then \
+        ln -s "/opt/${FIRST_PLATFORM}/bin" "/usr/local/x86_64-pc-linux-gnu/bin"; \
+      fi; \
+    fi
 
 USER arc
 WORKDIR /input
