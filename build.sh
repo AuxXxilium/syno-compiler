@@ -24,6 +24,7 @@ URIS["v1000nk"]="AMD%20x86%20Linux%20|%20%28v1000nk%29"
 URIS["r1000"]="AMD%20x86%20Linux%20|%20%28r1000%29"
 URIS["r1000nk"]="AMD%20x86%20Linux%20|%20%28r1000nk%29"
 URIS["epyc7002"]="AMD%20x86%20Linux%20Linux%20|%20%28epyc7002%29"
+URIS["epyc7003ntb"]="AMD%20x86%20Linux%20|%20%28epyc7003ntb%29"
 
 # Kernel versions for downloads (toolchain kernel versions)
 TOOLCHAIN_KVER["7.1:apollolake"]="4.4.180"
@@ -56,6 +57,7 @@ TOOLCHAIN_KVER["7.3:r1000"]="4.4.302"
 TOOLCHAIN_KVER["7.3:purley"]="4.4.302"
 TOOLCHAIN_KVER["7.3:broadwellnkv2"]="4.4.302"
 TOOLCHAIN_KVER["7.3:broadwellntbap"]="4.4.302"
+TOOLCHAIN_KVER["7.4:epyc7003ntb"]="5.10.55"
 
 # Kernel versions for module compilation (target kernel versions)
 PLATFORMS["7.1:apollolake"]="4.4.180"
@@ -97,6 +99,7 @@ PLATFORMS["7.3:r1000nk"]="5.10.55"
 PLATFORMS["7.3:purley"]="4.4.302"
 PLATFORMS["7.3:broadwellnkv2"]="4.4.302"
 PLATFORMS["7.3:broadwellntbap"]="4.4.302"
+PLATFORMS["7.4:epyc7003ntb"]="5.10.55"
 
 ###############################################################################
 function trap_cancel() {
@@ -178,8 +181,9 @@ function select_version() {
   echo "1) DSM 7.1"
   echo "2) DSM 7.2"
   echo "3) DSM 7.3"
+  echo "4) DSM 7.4"
   echo
-  read -p "Enter selection (1-3): " VERSION_CHOICE
+  read -p "Enter selection (1-4): " VERSION_CHOICE
 
   case ${VERSION_CHOICE} in
     1)
@@ -195,6 +199,11 @@ function select_version() {
     3)
       TOOLKIT_VER="7.3"
       TOOLCHAIN_VER="7.3-86009"
+      GCCLIB_VER="gcc1220_glibc236"
+      ;;
+    4)
+      TOOLKIT_VER="7.4"
+      TOOLCHAIN_VER="7.4-101151"
       GCCLIB_VER="gcc1220_glibc236"
       ;;
     *)
@@ -223,8 +232,13 @@ if [ -n "$1" ]; then
       TOOLCHAIN_VER="7.3-86009"
       GCCLIB_VER="gcc1220_glibc236"
       ;;
+    7.4)
+      TOOLKIT_VER="7.4"
+      TOOLCHAIN_VER="7.4-101151"
+      GCCLIB_VER="gcc1220_glibc236"
+      ;;
     *)
-      echo "Usage: $0 [7.1|7.2|7.3]"
+      echo "Usage: $0 [7.1|7.2|7.3|7.4]"
       exit 1
       ;;
   esac
