@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 
 CACHE_DIR="cache"
-SERVERA="https://arc.auxxxilium.tech/tarballs"
-SERVERS="https://global.synologydownload.com"
+TOOLKIT_SERVER="https://global.synologydownload.com/download/ToolChain/toolkit"
+TOOLCHAIN_SERVER="https://global.synologydownload.com/download/ToolChain/toolchain"
 #https://global.download.synology.com/download/ToolChain/Synology%20NAS%20GPL%20Source/
 
 declare -A URIS
@@ -60,6 +60,7 @@ TOOLCHAIN_KVER["7.3:broadwellntbap"]="4.4.302"
 TOOLCHAIN_KVER["7.4:epyc7003ntb"]="5.10.55"
 
 # Kernel versions for module compilation (target kernel versions)
+DSM 7.1
 PLATFORMS["7.1:apollolake"]="4.4.180"
 PLATFORMS["7.1:broadwell"]="4.4.180"
 PLATFORMS["7.1:broadwellnk"]="4.4.180"
@@ -71,6 +72,7 @@ PLATFORMS["7.1:epyc7002"]="5.10.55"
 PLATFORMS["7.1:purley"]="4.4.180"
 PLATFORMS["7.1:broadwellnkv2"]="4.4.180"
 PLATFORMS["7.1:broadwellntbap"]="4.4.180"
+# DSM 7.2
 PLATFORMS["7.2:apollolake"]="4.4.302"
 PLATFORMS["7.2:broadwell"]="4.4.302"
 PLATFORMS["7.2:broadwellnk"]="4.4.302"
@@ -85,6 +87,7 @@ PLATFORMS["7.2:r1000nk"]="5.10.55"
 PLATFORMS["7.2:purley"]="4.4.302"
 PLATFORMS["7.2:broadwellnkv2"]="4.4.302"
 PLATFORMS["7.2:broadwellntbap"]="4.4.302"
+# DSM 7.3
 PLATFORMS["7.3:apollolake"]="4.4.302"
 PLATFORMS["7.3:broadwell"]="4.4.302"
 PLATFORMS["7.3:broadwellnk"]="4.4.302"
@@ -99,6 +102,7 @@ PLATFORMS["7.3:r1000nk"]="5.10.55"
 PLATFORMS["7.3:purley"]="4.4.302"
 PLATFORMS["7.3:broadwellnkv2"]="4.4.302"
 PLATFORMS["7.3:broadwellntbap"]="4.4.302"
+# DSM 7.4
 PLATFORMS["7.4:epyc7003ntb"]="5.10.55"
 
 ###############################################################################
@@ -123,7 +127,7 @@ function prepare() {
       # Dev
       echo -n "Checking ${CACHE_VERSION}/ds.${PLATFORM}-${TOOLKIT_VER}.dev.txz... "
       if [ ! -f "${CACHE_VERSION}/ds.${PLATFORM}-${TOOLKIT_VER}.dev.txz" ]; then
-        URL="${SERVERA}/ds.${PLATFORM}-${TOOLKIT_VER}.dev.txz"
+        URL="${TOOLKIT_SERVER}/${TOOLKIT_VER}/${PLATFORM}/ds.${PLATFORM}-${TOOLKIT_VER}.dev.txz"
         echo -e "No\nDownloading ${URL}"
         STATUS=`curl -w "%{http_code}" -L "${URL}" -o "${CACHE_VERSION}/ds.${PLATFORM}-${TOOLKIT_VER}.dev.txz"`
         if [ ${STATUS} -ne 200 ]; then
@@ -136,8 +140,8 @@ function prepare() {
       # Toolchain - use TOOLCHAIN_KVER for download URL construction
       DOWNLOAD_KVER="${TOOLCHAIN_KVER[${TOOLKIT_VER}:${PLATFORM}]}"
       URI="`echo ${URIS[${PLATFORM}]} | sed "s/|/${DOWNLOAD_KVER}/"`"
-      URL="${SERVERS}/download/ToolChain/toolchain/${TOOLCHAIN_VER}/${URI}/${PLATFORM}-${GCCLIB_VER}_x86_64-GPL.txz"
       FILENAME="${PLATFORM}-${GCCLIB_VER}_x86_64-GPL.txz"
+      URL="${TOOLCHAIN_SERVER}/${TOOLCHAIN_VER}/${URI}/${FILENAME}"
       echo -n "Checking ${CACHE_VERSION}/${FILENAME}... "
       if [ ! -f "${CACHE_VERSION}/${FILENAME}" ]; then
         echo -e "No\nDownloading ${URL}"
