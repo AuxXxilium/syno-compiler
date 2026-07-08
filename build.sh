@@ -8,6 +8,7 @@ TOOLCHAIN_SERVER="https://global.synologydownload.com/download/ToolChain/toolcha
 declare -A URIS
 declare -A PLATFORMS
 declare -A TOOLCHAIN_KVER
+declare -A TOOLCHAIN_VER_OVERRIDE
 
 # URIs for toolchain downloads (platform-specific, with kernel version placeholder)
 URIS["apollolake"]="Intel%20x86%20Linux%20|%20%28Apollolake%29"
@@ -24,43 +25,23 @@ URIS["v1000nk"]="AMD%20x86%20Linux%20|%20%28v1000nk%29"
 URIS["r1000"]="AMD%20x86%20Linux%20|%20%28r1000%29"
 URIS["r1000nk"]="AMD%20x86%20Linux%20|%20%28r1000nk%29"
 URIS["epyc7002"]="AMD%20x86%20Linux%20Linux%20|%20%28epyc7002%29"
+URIS["epyc7003"]="AMD%20x86%20Linux%20Linux%20|%20%28epyc7003%29"
 URIS["epyc7003ntb"]="AMD%20x86%20Linux%20|%20%28epyc7003ntb%29"
+URIS["icelaked"]="Intel%20x86%20Linux%20|%20%28icelaked%29"
 
-# Kernel versions for downloads (toolchain kernel versions)
-TOOLCHAIN_KVER["7.1:apollolake"]="4.4.180"
-TOOLCHAIN_KVER["7.1:broadwell"]="4.4.180"
-TOOLCHAIN_KVER["7.1:broadwellnk"]="4.4.180"
-TOOLCHAIN_KVER["7.1:denverton"]="4.4.180"
-TOOLCHAIN_KVER["7.1:geminilake"]="4.4.180"
-TOOLCHAIN_KVER["7.1:v1000"]="4.4.180"
-TOOLCHAIN_KVER["7.1:r1000"]="4.4.180"
-TOOLCHAIN_KVER["7.1:purley"]="4.4.180"
-TOOLCHAIN_KVER["7.1:broadwellnkv2"]="4.4.180"
-TOOLCHAIN_KVER["7.1:broadwellntbap"]="4.4.180"
+# Kernel versions for downloads (toolchain kernel versions).
+# Only entries where the published toolchain download differs from the
+# module-compilation kernel version in PLATFORMS need to be listed here;
+# lookup falls back to PLATFORMS otherwise (see toolchain_kver()).
 TOOLCHAIN_KVER["7.2:apollolake"]="4.4.180"
 TOOLCHAIN_KVER["7.2:broadwell"]="4.4.180"
-TOOLCHAIN_KVER["7.2:broadwellnk"]="4.4.302"
-TOOLCHAIN_KVER["7.2:denverton"]="4.4.302"
-TOOLCHAIN_KVER["7.2:geminilake"]="4.4.302"
-TOOLCHAIN_KVER["7.2:v1000"]="4.4.302"
-TOOLCHAIN_KVER["7.2:r1000"]="4.4.302"
-TOOLCHAIN_KVER["7.2:purley"]="4.4.302"
-TOOLCHAIN_KVER["7.2:broadwellnkv2"]="4.4.302"
-TOOLCHAIN_KVER["7.2:broadwellntbap"]="4.4.302"
 TOOLCHAIN_KVER["7.3:apollolake"]="4.4.180"
 TOOLCHAIN_KVER["7.3:broadwell"]="4.4.180"
-TOOLCHAIN_KVER["7.3:broadwellnk"]="4.4.302"
-TOOLCHAIN_KVER["7.3:denverton"]="4.4.302"
-TOOLCHAIN_KVER["7.3:geminilake"]="4.4.302"
-TOOLCHAIN_KVER["7.3:v1000"]="4.4.302"
-TOOLCHAIN_KVER["7.3:r1000"]="4.4.302"
-TOOLCHAIN_KVER["7.3:purley"]="4.4.302"
-TOOLCHAIN_KVER["7.3:broadwellnkv2"]="4.4.302"
-TOOLCHAIN_KVER["7.3:broadwellntbap"]="4.4.302"
-TOOLCHAIN_KVER["7.4:epyc7003ntb"]="5.10.55"
+TOOLCHAIN_KVER["7.4:apollolake"]="4.4.180"
+TOOLCHAIN_KVER["7.4:broadwell"]="4.4.180"
 
 # Kernel versions for module compilation (target kernel versions)
-DSM 7.1
+# DSM 7.1
 PLATFORMS["7.1:apollolake"]="4.4.180"
 PLATFORMS["7.1:broadwell"]="4.4.180"
 PLATFORMS["7.1:broadwellnk"]="4.4.180"
@@ -103,7 +84,51 @@ PLATFORMS["7.3:purley"]="4.4.302"
 PLATFORMS["7.3:broadwellnkv2"]="4.4.302"
 PLATFORMS["7.3:broadwellntbap"]="4.4.302"
 # DSM 7.4
+PLATFORMS["7.4:apollolake"]="4.4.302"
+PLATFORMS["7.4:broadwell"]="4.4.302"
+PLATFORMS["7.4:broadwellnk"]="4.4.302"
+PLATFORMS["7.4:denverton"]="4.4.302"
+PLATFORMS["7.4:geminilake"]="4.4.302"
+PLATFORMS["7.4:v1000"]="4.4.302"
+PLATFORMS["7.4:r1000"]="4.4.302"
+PLATFORMS["7.4:epyc7002"]="5.10.55"
+PLATFORMS["7.4:epyc7003"]="5.10.55"
+PLATFORMS["7.4:geminilakenk"]="5.10.55"
+PLATFORMS["7.4:icelaked"]="5.10.55"
+PLATFORMS["7.4:v1000nk"]="5.10.55"
+PLATFORMS["7.4:r1000nk"]="5.10.55"
+PLATFORMS["7.4:purley"]="4.4.302"
+PLATFORMS["7.4:broadwellnkv2"]="4.4.302"
+PLATFORMS["7.4:broadwellntbap"]="4.4.302"
 PLATFORMS["7.4:epyc7003ntb"]="5.10.55"
+
+# Toolchain build number overrides - epyc7003ntb's GPL toolchain is only
+# published under the DSM 7.4 Enterprise toolchain build, not 7.4-90075.
+TOOLCHAIN_VER_OVERRIDE["7.4:epyc7003ntb"]="7.4-101151"
+
+###############################################################################
+# Toolchain download kernel version for a platform, falling back to the
+# module-compilation kernel version (PLATFORMS) when no override exists.
+function toolchain_kver() {
+  local key="$1"
+  if [ -n "${TOOLCHAIN_KVER[$key]+set}" ]; then
+    echo "${TOOLCHAIN_KVER[$key]}"
+  else
+    echo "${PLATFORMS[$key]}"
+  fi
+}
+
+###############################################################################
+# Toolchain build version (TOOLCHAIN_SERVER path segment) for a platform,
+# falling back to the DSM-wide TOOLCHAIN_VER when no override exists.
+function toolchain_ver() {
+  local key="$1"
+  if [ -n "${TOOLCHAIN_VER_OVERRIDE[$key]+set}" ]; then
+    echo "${TOOLCHAIN_VER_OVERRIDE[$key]}"
+  else
+    echo "${TOOLCHAIN_VER}"
+  fi
+}
 
 ###############################################################################
 function trap_cancel() {
@@ -137,11 +162,11 @@ function prepare() {
       else
         echo "OK"
       fi
-      # Toolchain - use TOOLCHAIN_KVER for download URL construction
-      DOWNLOAD_KVER="${TOOLCHAIN_KVER[${TOOLKIT_VER}:${PLATFORM}]}"
+      # Toolchain - use TOOLCHAIN_KVER (falling back to PLATFORMS) for download URL construction
+      DOWNLOAD_KVER="$(toolchain_kver "${TOOLKIT_VER}:${PLATFORM}")"
       URI="`echo ${URIS[${PLATFORM}]} | sed "s/|/${DOWNLOAD_KVER}/"`"
       FILENAME="${PLATFORM}-${GCCLIB_VER}_x86_64-GPL.txz"
-      URL="${TOOLCHAIN_SERVER}/${TOOLCHAIN_VER}/${URI}/${FILENAME}"
+      URL="${TOOLCHAIN_SERVER}/$(toolchain_ver "${TOOLKIT_VER}:${PLATFORM}")/${URI}/${FILENAME}"
       echo -n "Checking ${CACHE_VERSION}/${FILENAME}... "
       if [ ! -f "${CACHE_VERSION}/${FILENAME}" ]; then
         echo -e "No\nDownloading ${URL}"
@@ -207,7 +232,7 @@ function select_version() {
       ;;
     4)
       TOOLKIT_VER="7.4"
-      TOOLCHAIN_VER="7.4-101151"
+      TOOLCHAIN_VER="7.4-90075"
       GCCLIB_VER="gcc1220_glibc236"
       ;;
     *)
@@ -218,6 +243,18 @@ function select_version() {
 }
 
 ###############################################################################
+# Parse args: version (positional) and optional --push flag (either position)
+PUSH=0
+ARGS=()
+for arg in "$@"; do
+  if [ "$arg" = "--push" ]; then
+    PUSH=1
+  else
+    ARGS+=("$arg")
+  fi
+done
+set -- "${ARGS[@]}"
+
 # Version selection: CLI argument or interactive menu
 if [ -n "$1" ]; then
   case $1 in
@@ -238,11 +275,11 @@ if [ -n "$1" ]; then
       ;;
     7.4)
       TOOLKIT_VER="7.4"
-      TOOLCHAIN_VER="7.4-101151"
+      TOOLCHAIN_VER="7.4-90075"
       GCCLIB_VER="gcc1220_glibc236"
       ;;
     *)
-      echo "Usage: $0 [7.1|7.2|7.3|7.4]"
+      echo "Usage: $0 [7.1|7.2|7.3|7.4] [--push]"
       exit 1
       ;;
   esac
@@ -254,3 +291,8 @@ prepare
 echo "Building ${TOOLKIT_VER}"
 docker image rm auxxxilium/syno-compiler:${TOOLKIT_VER} >/dev/null 2>&1
 docker buildx build . --load --tag auxxxilium/syno-compiler:${TOOLKIT_VER}
+
+if [ "${PUSH}" -eq 1 ]; then
+  echo "Pushing auxxxilium/syno-compiler:${TOOLKIT_VER}"
+  docker push auxxxilium/syno-compiler:${TOOLKIT_VER}
+fi
