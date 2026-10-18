@@ -102,8 +102,8 @@ PLATFORMS["7.4:broadwellnkv2"]="4.4.302"
 PLATFORMS["7.4:broadwellntbap"]="4.4.302"
 PLATFORMS["7.4:epyc7003ntb"]="5.10.55"
 
-# Toolchain build number overrides - epyc7003ntb's GPL toolchain is only
-# published under the DSM 7.4 Enterprise toolchain build, not 7.4-90075.
+# Toolchain build number overrides - epyc7003ntb must be built against the
+# DSM 7.4 Enterprise toolchain build, not the DSM-wide 7.4-90080.
 TOOLCHAIN_VER_OVERRIDE["7.4:epyc7003ntb"]="7.4-101151"
 
 ###############################################################################
@@ -232,7 +232,7 @@ function select_version() {
       ;;
     4)
       TOOLKIT_VER="7.4"
-      TOOLCHAIN_VER="7.4-90075"
+      TOOLCHAIN_VER="7.4-90080"
       GCCLIB_VER="gcc1220_glibc236"
       ;;
     *)
@@ -275,7 +275,7 @@ if [ -n "$1" ]; then
       ;;
     7.4)
       TOOLKIT_VER="7.4"
-      TOOLCHAIN_VER="7.4-90075"
+      TOOLCHAIN_VER="7.4-90080"
       GCCLIB_VER="gcc1220_glibc236"
       ;;
     *)
