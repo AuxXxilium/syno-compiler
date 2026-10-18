@@ -102,8 +102,8 @@ PLATFORMS["7.4:broadwellnkv2"]="4.4.302"
 PLATFORMS["7.4:broadwellntbap"]="4.4.302"
 PLATFORMS["7.4:epyc7003ntb"]="5.10.55"
 
-# Toolchain build number overrides - epyc7003ntb must be built against the
-# DSM 7.4 Enterprise toolchain build, not the DSM-wide 7.4-90080.
+# Toolchain build number overrides - epyc7003ntb's GPL toolchain is only
+# published under the DSM 7.4 Enterprise toolchain build, not 7.4-90080.
 TOOLCHAIN_VER_OVERRIDE["7.4:epyc7003ntb"]="7.4-101151"
 
 ###############################################################################
@@ -293,6 +293,14 @@ docker image rm auxxxilium/syno-compiler:${TOOLKIT_VER} >/dev/null 2>&1
 docker buildx build . --load --tag auxxxilium/syno-compiler:${TOOLKIT_VER}
 
 if [ "${PUSH}" -eq 1 ]; then
+  # Log in to Docker Hub (prompts for password / access token)
+  DOCKER_USER="${DOCKER_USER:-auxxxilium}"
+  echo "Logging in to Docker Hub as ${DOCKER_USER}"
+  if ! docker login -u "${DOCKER_USER}"; then
+    echo "Docker login failed"
+    exit 1
+  fi
+
   echo "Pushing auxxxilium/syno-compiler:${TOOLKIT_VER}"
   docker push auxxxilium/syno-compiler:${TOOLKIT_VER}
 fi
